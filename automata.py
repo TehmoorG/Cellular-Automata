@@ -30,7 +30,19 @@ def lorenz96(initial_state, nsteps, constants=(1/101, 100, 8)):
     """
 
     # write your code here to replace this return statement
-    return NotImplemented
+    alpha, beta, gamma = constants
+    state = np.array(initial_state, dtype=float)
+
+    for _ in range(nsteps):
+        new_state = np.zeros_like(state)
+        N = len(state)
+
+        for i in range(N):
+            new_state[i] = alpha * (beta * state[i] + (state[(i - 2) % N] - state[(i + 1) % N]) * state[(i - 1) % N] + gamma)
+
+        state = new_state
+
+    return state
 
 
 def life(initial_state, nsteps, rules="basic", periodic=False):
