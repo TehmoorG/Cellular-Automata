@@ -22,25 +22,97 @@ def lorenz96(initial_state, nsteps, constants=(1/101, 100, 8)):
     -------
 
     numpy.ndarray
-         Final state of lattice in array of floats
+        Final state of lattice in array of floats
 
     >>> x = lorenz96([8.0, 8.0, 8.0], 1)
     >>> print(x)
     array([8.0, 8.0, 8.0])
     """
 
-    # write your code here to replace this return statement
+
     alpha, beta, gamma = constants
     state = np.array(initial_state, dtype=float)
-
+    new_state = np.zeros_like(state)
+    N = len(state)
     for _ in range(nsteps):
-        new_state = np.zeros_like(state)
-        N = len(state)
+
 
         for i in range(N):
             new_state[i] = alpha * (beta * state[i] + (state[(i - 2) % N] - state[(i + 1) % N]) * state[(i - 1) % N] + gamma)
 
         state = new_state
+
+    return state
+
+def lorenz96_1(initial_state, nsteps, constants=(1/101, 100, 8)):
+    """
+    Perform iterations of the Lorenz 96 update.
+
+    Parameters
+    ----------
+    initial_state : array_like or list
+        Initial state of lattice in an array of floats.
+    nsteps : int
+        Number of steps of Lorenz 96 to perform.
+
+    Returns
+    -------
+    numpy.ndarray
+        Final state of lattice in an array of floats
+    """
+
+    alpha, beta, gamma = constants
+    state = np.array(initial_state, dtype=float)
+    N = len(state)
+
+    for _ in range(nsteps):
+        # Create arrays with shifted indices
+        state_shifted_minus_2 = np.roll(state, 2)
+        state_shifted_minus_1 = np.roll(state, 1)
+        state_shifted_plus_1 = np.roll(state, -1)
+
+        # Compute the new state for all lattice points simultaneously
+        new_state = alpha * (beta * state + (state_shifted_minus_2 - state_shifted_plus_1) * state_shifted_minus_1 + gamma)
+
+        state = new_state
+
+    return state
+
+def lorenz96_2(initial_state, nsteps, constants=(1/101, 100, 8)):
+    """
+    Perform iterations of the Lorenz 96 update.
+
+    Parameters
+    ----------
+    initial_state : array_like or list
+        Initial state of lattice in an array of floats.
+    nsteps : int
+        Number of steps of Lorenz 96 to perform.
+
+    Returns
+    -------
+    numpy.ndarray
+        Final state of lattice in an array of floats
+    """
+
+    alpha, beta, gamma = constants
+    state = np.array(initial_state, dtype=float)
+    N = len(state)
+    new_state = np.empty_like(state)  # Create a new state array
+
+    for _ in range(nsteps):
+        # Compute the first two elements
+        new_state[0] = alpha * (beta * state[0] + (state[N - 2] - state[1]) * state[N - 1] + gamma)
+        new_state[1] = alpha * (beta * state[1] + (state[N - 1] - state[0]) * state[0] + gamma)
+
+        # Compute the elements between 2 and N-2
+        new_state[2:N - 2] = alpha * (beta * state[2:N - 2] + (state[0:N - 4] - state[3:N - 1]) * state[1:N - 3] + gamma)   
+
+        # Compute the last element
+        new_state[N - 1] = alpha * (beta * state[N - 1] + (state[N - 3] - state[0]) * state[N - 2] + gamma)
+
+        # Update the state array
+        state[:] = new_state
 
     return state
 
@@ -143,3 +215,12 @@ def plot_array(data, show_axis=False,
         plt.axis('on')
     else:
         plt.axis('off')
+
+if __name__ == "__main__":
+    initial_state = np.array([8,8,9,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8])
+    nsteps = 20
+    final_state = lorenz96_1(initial_state, nsteps)
+    plot_lorenz96(final_state)
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.show()
