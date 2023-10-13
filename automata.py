@@ -5,8 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
-def lorenz96(initial_state, nsteps, constants=(1/101, 100, 8)):
+def lorenz96(initial_state, nsteps, constants=(1 / 101, 100, 8)):
     """
     Perform iterations of the Lorenz 96 update.
 
@@ -30,14 +29,24 @@ def lorenz96(initial_state, nsteps, constants=(1/101, 100, 8)):
 
     for _ in range(nsteps):
         # Compute the first two elements
-        new_state[0] = alpha * (beta * state[0] + (state[N - 2] - state[1]) * state[N - 1] + gamma)
-        new_state[1] = alpha * (beta * state[1] + (state[N - 1] - state[2]) * state[0] + gamma)
+        new_state[0] = alpha * (
+            beta * state[0] + (state[N - 2] - state[1]) * state[N - 1] + gamma
+        )
+        new_state[1] = alpha * (
+            beta * state[1] + (state[N - 1] - state[2]) * state[0] + gamma
+        )
 
         # Compute the elements between 2 and N-2
-        new_state[2:N - 1] = alpha * (beta * state[2:N - 1] + (state[0:N - 3] - state[3:N]) * state[1:N - 2] + gamma)   
+        new_state[2 : N - 1] = alpha * (
+            beta * state[2 : N - 1]
+            + (state[0 : N - 3] - state[3:N]) * state[1 : N - 2]
+            + gamma
+        )
 
         # Compute the last element
-        new_state[N - 1] = alpha * (beta * state[N - 1] + (state[N - 3] - state[0]) * state[N - 2] + gamma)
+        new_state[N - 1] = alpha * (
+            beta * state[N - 1] + (state[N - 3] - state[0]) * state[N - 2] + gamma
+        )
 
         # Update the state array
         state[:] = new_state
@@ -74,7 +83,7 @@ def life(initial_state, nsteps, rules="basic", periodic=False):
         rows, cols, depth = state.shape
         for _ in range(nsteps):
             next_state = state.copy()
-            
+
             for i in range(rows):
                 for j in range(cols):
                     for k in range(depth):
@@ -90,18 +99,25 @@ def life(initial_state, nsteps, rules="basic", periodic=False):
                                         ni %= rows
                                         nj %= cols
                                         nk %= depth
-                                    elif ni < 0 or ni >= rows or nj < 0 or nj >= cols or nk < 0 or nk >= depth:
+                                    elif (
+                                        ni < 0
+                                        or ni >= rows
+                                        or nj < 0
+                                        or nj >= cols
+                                        or nk < 0
+                                        or nk >= depth
+                                    ):
                                         continue  # Skip out of bounds
 
                                     total += state[ni, nj, nk]
-                                    
+
                             if state[i, j, k] != 0:  # If cell is alive
                                 if total < 5 or total > 6:  # Die
                                     next_state[i, j, k] = 0
                             else:  # Dead cell
                                 if total == 4:
                                     next_state[i, j, k] = 1  # Birth
-            
+
             state = next_state
         return state
     else:
@@ -157,6 +173,7 @@ def life(initial_state, nsteps, rules="basic", periodic=False):
 
         return state
 
+
 # The routines below are plotting aids. They do not need to modified and should not be called
 # in the final versions of your functions.
 
@@ -176,34 +193,30 @@ def plot_lorenz96(data, label=None):
     offset = 8
 
     data = np.asarray(data)
-    theta = 2*np.pi*np.arange(len(data))/len(data)
+    theta = 2 * np.pi * np.arange(len(data)) / len(data)
 
     vector = np.empty((len(data), 2))
-    vector[:, 0] = (data+offset)*np.sin(theta)
-    vector[:, 1] = (data+offset)*np.cos(theta)
+    vector[:, 0] = (data + offset) * np.sin(theta)
+    vector[:, 1] = (data + offset) * np.cos(theta)
 
-    theta = np.linspace(0, 2*np.pi)
+    theta = np.linspace(0, 2 * np.pi)
 
-    rings = np.arange(int(np.floor(min(data))-1),
-                      int(np.ceil(max(data)))+2)
+    rings = np.arange(int(np.floor(min(data)) - 1), int(np.ceil(max(data))) + 2)
     for ring in rings:
-        plt.plot((ring+offset)*np.cos(theta),
-                 (ring+offset)*np.sin(theta), 'k:')
+        plt.plot((ring + offset) * np.cos(theta), (ring + offset) * np.sin(theta), "k:")
 
     fig_ax = plt.gca()
-    fig_ax.spines['left'].set_position(('data', 0.0))
-    fig_ax.spines['bottom'].set_position(('data', 0.0))
-    fig_ax.spines['right'].set_color('none')
-    fig_ax.spines['top'].set_color('none')
+    fig_ax.spines["left"].set_position(("data", 0.0))
+    fig_ax.spines["bottom"].set_position(("data", 0.0))
+    fig_ax.spines["right"].set_color("none")
+    fig_ax.spines["top"].set_color("none")
     plt.xticks([])
-    plt.yticks(rings+offset, rings)
-    plt.fill(vector[:, 0], vector[:, 1],
-             label=label, fill=False)
+    plt.yticks(rings + offset, rings)
+    plt.fill(vector[:, 0], vector[:, 1], label=label, fill=False)
     plt.scatter(vector[:, 0], vector[:, 1], 20)
 
 
-def plot_array(data, show_axis=False,
-               cmap=plt.cm.get_cmap('seismic'), **kwargs):
+def plot_array(data, show_axis=False, cmap=plt.cm.get_cmap("seismic"), **kwargs):
     """Plot a 1D/2D array in an appropriate format.
 
     Mostly just a naive wrapper around pcolormesh.
@@ -224,12 +237,12 @@ def plot_array(data, show_axis=False,
     **kwargs
         Additional arguments passed straight to pyplot.pcolormesh
     """
-    plt.pcolormesh(1*data[-1::-1, :], edgecolor='y',
-                   vmin=-2, vmax=2, cmap=cmap, **kwargs)
+    plt.pcolormesh(
+        1 * data[-1::-1, :], edgecolor="y", vmin=-2, vmax=2, cmap=cmap, **kwargs
+    )
 
-    plt.axis('equal')
+    plt.axis("equal")
     if show_axis:
-        plt.axis('on')
+        plt.axis("on")
     else:
-        plt.axis('off')
-
+        plt.axis("off")
