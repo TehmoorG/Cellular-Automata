@@ -2,10 +2,8 @@
 Game of Life on various meshes"""
 
 import numpy as np
-import scipy
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
-from mpl_toolkits.mplot3d import Axes3D  # Importing 3D plotting tool
+
 
 
 def lorenz96(initial_state, nsteps, constants=(1/101, 100, 8)):
