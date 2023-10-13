@@ -7,6 +7,7 @@ or similar.
 import os
 import numpy as np
 import automata
+import pytest
 BASE_PATH = os.path.dirname(__file__)
 
 class TestLorenz96(object):
@@ -57,70 +58,64 @@ class TestLorenz96(object):
         assert np.isclose(result[(result != expected_i_minus_1) & 
                                 (result != expected_i) & 
                                 (result != expected_i_plus_1)], 8.0, atol=1e-6).all()
+    def test_different_constants(self):
+        # testing with different α, β, γ values
+        initial_state = [8.0,8.0,8.0,8.0,8.0]
+        constants = (1/70, 69, 2)  # new constants
+        # Hand Calculated
+        expected = [7.914285714285714, 7.914285714285714, 7.914285714285714, 7.914285714285714, 7.914285714285714]
+        result = automata.lorenz96(initial_state, 1, constants=constants)
+        assert np.isclose(result, expected).all()
 
 
 
+class TestLife:
+    @pytest.mark.parametrize("initial_state, n_steps, expected_state, rules, periodic", [
+        # 2D Basic Rules
+        (np.array([[0, 1, 0],
+                   [0, 1, 1],
+                   [1, 1, 1]]), 1, np.array([[0, 1, 1],
+                                             [0, 0, 0],
+                                             [1, 0, 1]]), "basic", False),
+        # 2D Two-Colour Rules
+        (np.array([[0, 0, 0, 0],
+                   [0, 1, 0, 0],
+                   [0, 1, 2, 0],
+                   [0, 1, 0, 0]]), 1, np.array([[0, 0, 0, 0],
+                                                [0, 1, 1, 0],
+                                                [1, 1, 2, 0],
+                                                [0, 1, 1, 0]]), "2colour", False),
+        # Periodic Conditions
+        (np.array([[0, 1, 0],
+                   [0, 0, 0],
+                   [0, 0, 0]]), 1, np.array([[0, 0, 0],
+                                             [0, 0, 0],
+                                             [0, 0, 0]]), "basic", True),
+    ])
+    def test_life(self, initial_state, n_steps, expected_state, rules, periodic):
+        result = automata.life(initial_state, n_steps, rules, periodic)
+        np.testing.assert_array_equal(result, expected_state)
 
-# Code i have personally wrote to help me create suitable tests.
-initial64 = np.load(os.sep.join((BASE_PATH,'lorenz96_64_init.npy')))
-print(initial64)
-"""class TestLife:
-    
-    # 2D Basic Rules
-    def test_2d_basic_rules(self):
+    def test_3d_conditions(self):
+        # This tests the scenario for a 3D grid.
+        initial_state = np.zeros((3, 3, 3))
+        initial_state[1, 1, 1] = 1
+        # Based on the 3D rules, the central cell should stay alive 
+        # with 0 or 1 neighbors, or die with more neighbors.
+        expected_state = np.zeros((3, 3, 3))
+        result = automata.life(initial_state, 1, rules="3d", periodic=False)
+        np.testing.assert_array_equal(result, expected_state)
+
+    def test_non_square_grid(self):
         initial_state = np.array([
-            [0, 1, 0],
-            [0, 1, 1],
-            [1, 1, 1]
+            [0, 0, 0, 0],
+            [0, 1, 1, 1],
+            [0, 0, 0, 0]
         ])
-        final_state = np.array([
-            [0, 1, 1],
-            [1, 0, 1],
-            [1, 1, 1]
+        expected_state = np.array([
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 0]
         ])
         result = automata.life(initial_state, 1, rules="basic", periodic=False)
-        np.testing.assert_array_equal(result, final_state)
-
-    # 2D Two-Colour Rules
-    def test_2d_2colour_rules(self):
-        initial_state = np.array([
-            [0, 1, 0],
-            [2, 1, 1],
-            [2, 1, 2]
-        ])
-        # Expected final state after one iteration under your 2colour rules
-        final_state = np.array([
-            [1, 1, 1],
-            [2, 0, 1],
-            [1, 2, 1]
-        ])
-        result = automata.life(initial_state, 1, rules="2colour", periodic=False)
-        np.testing.assert_array_equal(result, final_state)
-
-    # 3D Basic Rules
-    def test_3d_basic_rules(self):
-        initial_state = np.array([
-            [[0, 1, 0],
-             [0, 1, 1],
-             [1, 1, 1]],
-            [[0, 1, 0],
-             [0, 1, 1],
-             [1, 1, 1]],
-            [[0, 1, 0],
-             [0, 1, 1],
-             [1, 1, 1]]
-        ])
-        # Expected final state after one iteration under 3d rules
-        final_state = np.array([
-            [[0, 0, 0],
-             [0, 1, 0],
-             [0, 1, 0]],
-            [[0, 0, 0],
-             [0, 1, 0],
-             [0, 1, 0]],
-            [[0, 0, 0],
-             [0, 1, 0],
-             [0, 1, 0]]
-        ])
-        result = automata.life(initial_state, 1, rules="3d", periodic=False)
-        np.testing.assert_array_equal(result, final_state)"""
+        np.testing.assert_array_equal(result, expected_state)
