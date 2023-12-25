@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 def lorenz96(initial_state, nsteps, constants=(1 / 101, 100, 8)):
     """
-    Perform iterations of the Lorenz 96 update.
+    Perform iterations of the Lorenz 96 update with improved memory efficiency.
 
     Parameters
     ----------
@@ -15,6 +15,8 @@ def lorenz96(initial_state, nsteps, constants=(1 / 101, 100, 8)):
         Initial state of lattice in an array of floats.
     nsteps : int
         Number of steps of Lorenz 96 to perform.
+    constants : tuple
+        Constants alpha, beta, and gamma for the Lorenz 96 model.
 
     Returns
     -------
@@ -24,32 +26,31 @@ def lorenz96(initial_state, nsteps, constants=(1 / 101, 100, 8)):
 
     alpha, beta, gamma = constants
     state = np.array(initial_state, dtype=float)
-    N = len(initial_state)
-    new_state = np.empty_like(state)  # Create a new state array
+    N = len(state)
 
     for _ in range(nsteps):
-        # Compute the first two elements
-        new_state[0] = alpha * (
-            beta * state[0] + (state[N - 2] - state[1]) * state[N - 1] + gamma
+        # Temporarily store the last element to use for computing the first element
+        last_element = state[N - 1]
+
+        # Compute the first element
+        state[0] = alpha * (
+            beta * state[0] + (state[N - 2] - state[1]) * last_element + gamma
         )
-        new_state[1] = alpha * (
-            beta * state[1] + (state[N - 1] - state[2]) * state[0] + gamma
+        # Compute the second element, using the updated first element
+        state[1] = alpha * (
+            beta * state[1] + (last_element - state[2]) * state[0] + gamma
         )
 
-        # Compute the elements between 2 and N-2
-        new_state[2 : N - 1] = alpha * (
-            beta * state[2 : N - 1]
-            + (state[0 : N - 3] - state[3:N]) * state[1 : N - 2]
-            + gamma
-        )
+        # Compute the elements between 2 and N-1 in place
+        for i in range(2, N - 1):
+            state[i] = alpha * (
+                beta * state[i] + (state[i - 2] - state[i + 1]) * state[i - 1] + gamma
+            )
 
-        # Compute the last element
-        new_state[N - 1] = alpha * (
-            beta * state[N - 1] + (state[N - 3] - state[0]) * state[N - 2] + gamma
+        # Compute the last element using the temporarily stored last element
+        state[N - 1] = alpha * (
+            beta * last_element + (state[N - 3] - state[0]) * state[N - 2] + gamma
         )
-
-        # Update the state array
-        state[:] = new_state
 
     return state
 
