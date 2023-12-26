@@ -3,9 +3,10 @@ Game of Life on various meshes"""
 
 import numpy as np
 import matplotlib.pyplot as plt
+import itertools
 
 
-def lorenz96(initial_state, nsteps, constants=(1/101, 100, 8)):
+def lorenz96(initial_state, nsteps, constants=(1 / 101, 100, 8)):
     """
     Perform iterations of the Lorenz 96 model.
 
@@ -26,21 +27,22 @@ def lorenz96(initial_state, nsteps, constants=(1/101, 100, 8)):
     alpha, beta, gamma = constants
     state = np.array(initial_state, dtype=float)
     for _ in range(nsteps):
-        next_state = np.array(alpha * ((beta * state)
-                                       - (np.roll(state, -2)
-                                          - np.roll(state, 1))
-                                       * np.roll(state, -1) + gamma))
+        next_state = np.array(
+            alpha * (
+                (beta * state) - (np.roll(state, -2) - np.roll(state, 1)) * np.roll(state, -1) + gamma
+            )
+        )
         state = np.array(next_state)
 
     return state
 
 
-def life(initial_state, nsteps, rules='basic', periodic=False):
-    if rules == 'basic':
+def life(initial_state, nsteps, rules="basic", periodic=False):
+    if rules == "basic":
         return life_basic(initial_state, nsteps, periodic)
-    elif rules == '2colour':
+    elif rules == "2colour":
         return life2colour(initial_state, nsteps, periodic)
-    elif rules == '3d':
+    elif rules == "3d":
         return life3d(initial_state, nsteps, periodic)
     else:
         raise Exception("Rules combination not recognised.")
@@ -98,10 +100,8 @@ def life2colour(initial_state, nsteps, periodic=False):
 
         X2c = X2c * ((nc_bin == 2) + (nc_bin == 3))  # nc count 2,3 -> survives
         #  the following takes care of births
-        X2c += (nc_bin == 3) * (X2c == 0) * ((nc == 3) +
-                                             (nc == 1)) * (1)  # 1>-1
-        X2c += (nc_bin == 3) * (X2c == 0) * ((nc == -3) +
-                                             (nc == -1)) * (-1)  # -1>1
+        X2c += (nc_bin == 3) * (X2c == 0) * ((nc == 3) + (nc == 1)) * (1)  # 1>-1
+        X2c += (nc_bin == 3) * (X2c == 0) * ((nc == -3) + (nc == -1)) * (-1)  # -1>1
     return X2c
 
 
@@ -142,29 +142,30 @@ def neighbour_count(X, periodic=False):
 
     combos = list(itertools.product(*(X.ndim * [(-1, 0, 1)])))
 
-    combos.remove(X.ndim * (0, )) # remove the 0,0,0,... combination
+    combos.remove(X.ndim * (0,))  # remove the 0,0,0,... combination
 
-    if periodic: # periodic case is easy, just roll the array
+    if periodic:  # periodic case is easy, just roll the array
         for combo in combos:
             neighbour_count[...] += 1 * np.roll(X, combo, range(X.ndim))
     else:
+        SLICES = (
+            slice(None, -1),
+            slice(None, None),
+            slice(1, None),
+        )  # slices for the 3 cases
 
-        SLICES = (slice(None, -1), slice(None, None), slice(1, None)) # slices for the 3 cases
-
-        def lhs_slice(combo): # slice of the neighbour_count mesh to increment
+        def lhs_slice(combo):  # slice of the neighbour_count mesh to increment
             """Return the slice of the neighbour_count mesh to increment."""
             return tuple(SLICES[c + 1] for c in combo)
 
-        def rhs_slice(combo): # slice of the X mesh we're testing
+        def rhs_slice(combo):  # slice of the X mesh we're testing
             """Return the slice of the X mesh we're testing."""
             return tuple(SLICES[1 - c] for c in combo)
 
-        for combo in combos: # increment the neighbour_count mesh
+        for combo in combos:  # increment the neighbour_count mesh
             neighbour_count[lhs_slice(combo)] += 1 * X[rhs_slice(combo)]
 
     return neighbour_count
-
-
 
 
 # The routines below are plotting aids. They do not need to modified and should not be called
