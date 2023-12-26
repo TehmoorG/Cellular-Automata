@@ -35,125 +35,146 @@ def lorenz96(initial_state, nsteps, constants=(1/101, 100, 8)):
     return state
 
 
+def life(initial_state, nsteps, rules='basic', periodic=False):
+    if rules == 'basic':
+        return life_basic(initial_state, nsteps, periodic)
+    elif rules == '2colour':
+        return life2colour(initial_state, nsteps, periodic)
+    elif rules == '3d':
+        return life3d(initial_state, nsteps, periodic)
+    else:
+        raise Exception("Rules combination not recognised.")
 
-def life(initial_state, nsteps, rules="basic", periodic=False):
+
+def life_basic(initial_state, nsteps, periodic):
     """
-    Perform iterations of Conway’s Game of Life.
+    Perform iterations of Conway's Game of Life.
+
     Parameters
     ----------
     initial_state : array_like or list of lists
-        Initial 2d state of grid in an array of ints.
-    nsteps : int
-        Number of steps of Life to perform.
-    rules : str
-        Choose a set of rules from "basic", "2colour" or "3d".
-    periodic : bool
-        If True, use periodic boundary conditions.
+         Initial 2d state of grid in an array of booleans.
+    nt : int
+         Number of steps of Life to perform.
+
     Returns
     -------
-    numpy.ndarray
-         Final state of grid in array of ints.
+    ndarray
+         Final state of grid in array of booleans
     """
+    state = np.array(initial_state)
 
-    # write your code here to replace return statement
-    state = np.array(initial_state, dtype=int)
+    # main loop
+    for _ in range(nsteps):
+        nc = neighbour_count(np.array(state, bool), periodic)
+        state = state * (nc == 2) + (nc == 3)
 
-    # Determine if we're working in 2D or 3D
-    if rules == "3d":
-        if state.ndim != 3:
-            raise ValueError("Invalid grid dimension!")
-        rows, cols, depth = state.shape
-        for _ in range(nsteps):
-            next_state = state.copy()
+    return state
 
-            for i in range(rows):
-                for j in range(cols):
-                    for k in range(depth):
-                        total = 0  # Count the neighbors
 
-                        for x in [-1, 0, 1]:
-                            for y in [-1, 0, 1]:
-                                for z in [-1, 0, 1]:
-                                    if x == 0 and y == 0 and z == 0:
-                                        continue  # Skip the current cell
-                                    ni, nj, nk = i + x, j + y, k + z
-                                    if periodic:  # Handle periodic boundary conditions
-                                        ni %= rows
-                                        nj %= cols
-                                        nk %= depth
-                                    elif (
-                                        ni < 0
-                                        or ni >= rows
-                                        or nj < 0
-                                        or nj >= cols
-                                        or nk < 0
-                                        or nk >= depth
-                                    ):
-                                        continue  # Skip out of bounds
+def life2colour(initial_state, nsteps, periodic=False):
+    """
+    Perform iterations of Conway's Game of Life.
 
-                                    total += state[ni, nj, nk]
+    Parameters
+    ----------
+    initial_state : array_like or list of lists
+         Initial 2d state of grid in an array of booleans.
+    nsteps : int
+         Number of steps of Life to perform.
 
-                            if state[i, j, k] != 0:  # If cell is alive
-                                if total < 5 or total > 6:  # Die
-                                    next_state[i, j, k] = 0
-                            else:  # Dead cell
-                                if total == 4:
-                                    next_state[i, j, k] = 1  # Birth
+    Returns
+    -------
+    ndarray
+         Final state of grid in array of booleans
+    """
+    X2c = np.array(initial_state)
 
-            state = next_state
-        return state
+    # main loop
+    for _ in range(nsteps):
+        X2c_bin = np.square(X2c)
+        nc_bin = neighbour_count(np.array(X2c_bin, bool), periodic)
+        nc = neighbour_count(np.array(X2c), periodic)
+
+        X2c = X2c * ((nc_bin == 2) + (nc_bin == 3))  # nc count 2,3 -> survives
+        #  the following takes care of births
+        X2c += (nc_bin == 3) * (X2c == 0) * ((nc == 3) +
+                                             (nc == 1)) * (1)  # 1>-1
+        X2c += (nc_bin == 3) * (X2c == 0) * ((nc == -3) +
+                                             (nc == -1)) * (-1)  # -1>1
+    return X2c
+
+
+def life3d(initial_state, nsteps, periodic):
+    state = np.array(initial_state)
+
+    # main loop
+    for _ in range(nsteps):
+        nc = neighbour_count(np.array(state, bool), periodic)
+        # Cells survive with 5 or 6 neighbours, cells turn on with 4 neighbours
+        state = state * ((nc == 5) + (nc == 6)) + (nc == 4) - state * (nc == 4)
+
+    return state
+
+
+def neighbour_count(X, periodic=False):
+    """
+    Count the number of live neighbours of a regular n-d array.
+    Parameters
+    ----------
+
+    X : numpy.ndarray of bools
+       The Game of Life state.
+    periodic : bool
+       Whether boundaries are periodic
+    Returns
+    ------
+    ndarray of ints
+        Number of living neighbours for each cell.
+
+    The algorithm looks in each direction, and increases the count in a cell
+    if that neighbour is alive. This version is generic and will perform
+    the count for any system dimension.
+
+    """
+    nx = X.shape
+    neighbour_count = np.zeros(nx)
+    
+    combos = list(itertools.product(*(X.ndim * [(-1, 0, 1)])))
+
+    # Because it will include every combination, it also has the "do nothing"
+    # case to count the cell itself. We don't want that, so we remove
+    # the all zeros entry from the list.
+    combos.remove(X.ndim * (0, ))
+
+    if periodic:
+        # In the periodic case, we can use the np.roll function to shift
+        # things.
+        for combo in combos:
+            neighbour_count[...] += 1 * np.roll(X, combo, range(X.ndim))
     else:
-        if state.ndim != 2:
-            raise ValueError("Invalid grid dimension!")
-        rows, cols = state.shape
-        for _ in range(nsteps):
-            next_state = state.copy()
+        # In the non periodic case, we loop over the combinations and
+        # deal only with the slices which are actually relevant
+        # e.g. in 1D we want to do
+        # neighbour_count[0:nx-1] += X[1:nx]
+        # neighbour_count[1:nx] += X[0:nx-1]
 
-            for i in range(rows):
-                for j in range(cols):
-                    total = 0
-                    blue_neighbours = 0
-                    red_neighbours = 0
-                    for x in [-1, 0, 1]:
-                        for y in [-1, 0, 1]:
-                            if x == 0 and y == 0:
-                                continue
-                            ni, nj = i + x, j + y
-                            if periodic:
-                                ni %= rows
-                                nj %= cols
-                            elif ni < 0 or ni >= rows or nj < 0 or nj >= cols:
-                                continue
+        SLICES = (slice(None, -1), slice(None, None), slice(1, None))
 
-                            if state[ni][nj] > 0:
-                                total += 1
-                                if state[ni][nj] == 1:
-                                    blue_neighbours += 1
-                                else:
-                                    red_neighbours += 1
+        def lhs_slice(combo):
+            """Return the slice of the neighbour_count mesh to increment."""
+            return tuple(SLICES[c + 1] for c in combo)
 
-                    if rules == "basic":
-                        if state[i][j] == 1:  # If cell is alive
-                            if total < 2 or total > 3:  # Die
-                                next_state[i][j] = 0
-                        else:  # Dead cell
-                            if total == 3:
-                                next_state[i][j] = 1
+        def rhs_slice(combo):
+            """Return the slice of the X mesh we're testing."""
+            return tuple(SLICES[1 - c] for c in combo)
 
-                    elif rules == "2colour":
-                        if state[i][j] == 1 or state[i][j] == 2:  # If cell is alive
-                            if total < 2 or total > 3:  # Die
-                                next_state[i][j] = 0
-                        else:  # Dead cell
-                            if total == 3:
-                                if blue_neighbours > red_neighbours:
-                                    next_state[i][j] = 1
-                                else:
-                                    next_state[i][j] = 2
+        for combo in combos:
+            neighbour_count[lhs_slice(combo)] += 1 * X[rhs_slice(combo)]
 
-            state = next_state
+    return neighbour_count
 
-        return state
+
 
 
 # The routines below are plotting aids. They do not need to modified and should not be called
