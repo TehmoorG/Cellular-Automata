@@ -139,37 +139,27 @@ def neighbour_count(X, periodic=False):
     """
     nx = X.shape
     neighbour_count = np.zeros(nx)
-    
+
     combos = list(itertools.product(*(X.ndim * [(-1, 0, 1)])))
 
-    # Because it will include every combination, it also has the "do nothing"
-    # case to count the cell itself. We don't want that, so we remove
-    # the all zeros entry from the list.
-    combos.remove(X.ndim * (0, ))
+    combos.remove(X.ndim * (0, )) # remove the 0,0,0,... combination
 
-    if periodic:
-        # In the periodic case, we can use the np.roll function to shift
-        # things.
+    if periodic: # periodic case is easy, just roll the array
         for combo in combos:
             neighbour_count[...] += 1 * np.roll(X, combo, range(X.ndim))
     else:
-        # In the non periodic case, we loop over the combinations and
-        # deal only with the slices which are actually relevant
-        # e.g. in 1D we want to do
-        # neighbour_count[0:nx-1] += X[1:nx]
-        # neighbour_count[1:nx] += X[0:nx-1]
 
-        SLICES = (slice(None, -1), slice(None, None), slice(1, None))
+        SLICES = (slice(None, -1), slice(None, None), slice(1, None)) # slices for the 3 cases
 
-        def lhs_slice(combo):
+        def lhs_slice(combo): # slice of the neighbour_count mesh to increment
             """Return the slice of the neighbour_count mesh to increment."""
             return tuple(SLICES[c + 1] for c in combo)
 
-        def rhs_slice(combo):
+        def rhs_slice(combo): # slice of the X mesh we're testing
             """Return the slice of the X mesh we're testing."""
             return tuple(SLICES[1 - c] for c in combo)
 
-        for combo in combos:
+        for combo in combos: # increment the neighbour_count mesh
             neighbour_count[lhs_slice(combo)] += 1 * X[rhs_slice(combo)]
 
     return neighbour_count
