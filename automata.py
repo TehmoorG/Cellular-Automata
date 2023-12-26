@@ -5,54 +5,35 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def lorenz96(initial_state, nsteps, constants=(1 / 101, 100, 8)):
+def lorenz96(initial_state, nsteps, constants=(1/101, 100, 8)):
     """
-    Perform iterations of the Lorenz 96 update with improved memory efficiency.
+    Perform iterations of the Lorenz 96 model.
 
     Parameters
     ----------
-    initial_state : array_like or list
-        Initial state of lattice in an array of floats.
+    initial_state : array_like
+        The initial state of the system as an iterable of floats.
     nsteps : int
-        Number of steps of Lorenz 96 to perform.
-    constants : tuple
-        Constants alpha, beta, and gamma for the Lorenz 96 model.
+        The number of iterations to perform.
+    constants : tuple, optional
+        The parameters alpha, beta, and gamma of the model as a tuple.
 
     Returns
     -------
     numpy.ndarray
-        Final state of lattice in an array of floats
+        The state of the system after nsteps iterations.
     """
-
     alpha, beta, gamma = constants
     state = np.array(initial_state, dtype=float)
-    N = len(state)
-
     for _ in range(nsteps):
-        # Temporarily store the last element to use for computing the first element
-        last_element = state[N - 1]
-
-        # Compute the first element
-        state[0] = alpha * (
-            beta * state[0] + (state[N - 2] - state[1]) * last_element + gamma
-        )
-        # Compute the second element, using the updated first element
-        state[1] = alpha * (
-            beta * state[1] + (last_element - state[2]) * state[0] + gamma
-        )
-
-        # Compute the elements between 2 and N-1 in place
-        for i in range(2, N - 1):
-            state[i] = alpha * (
-                beta * state[i] + (state[i - 2] - state[i + 1]) * state[i - 1] + gamma
-            )
-
-        # Compute the last element using the temporarily stored last element
-        state[N - 1] = alpha * (
-            beta * last_element + (state[N - 3] - state[0]) * state[N - 2] + gamma
-        )
+        next_state = np.array(alpha * ((beta * state)
+                                       - (np.roll(state, -2)
+                                          - np.roll(state, 1))
+                                       * np.roll(state, -1) + gamma))
+        state = np.array(next_state)
 
     return state
+
 
 
 def life(initial_state, nsteps, rules="basic", periodic=False):
