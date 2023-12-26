@@ -1,27 +1,40 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-24ddc0f5d75046c5622901739e7c5dd533143b0c8e959d652212380cedb1ea36.svg)](https://classroom.github.com/a/BQySALPf)
-# Modern Programming Methods
-## Assessment 1: Cellular Automata
+# Cellular Automata Project: Lorenz 96 and Conway's Game of Life
 
-In this programming exercise, you will develop Python code providing implementations of several cellular automata. You will additionally develop suitable unit and function level tests and profile the code developed.
+## Overview
+This repository contains my improved implementations of two significant cellular automata: Lorenz 96, a model simulating atmospheric turbulence, and Conway's Game of Life, a zero-player game demonstrating cellular automaton complexity. These implementations were part of an academic assignment aimed at learning modern programming methods and enhancing code quality, performance, and understanding of complex systems.
 
-See [assessment.pdf](./assessment.pdf) for the full formal exercise definition.
+## Lorenz 96
+The Lorenz 96 model is a simplified representation of atmospheric dynamics. It was initially devised by Edward Lorenz in 1996 to provide a more straightforward framework for studying atmospheric predictability and data assimilation. My implementation focuses on optimizing the model for efficiency and accuracy, making it suitable for various simulations and studies.
 
-A starter file, `automata.py` is provided and should be updated with your code. A starter test framework is available in the `tests` folder. All new tests should be added in the `test_automata.py` file.
+### Key Enhancements
+- Data type optimization for increased calculation speed.
+- Strategic use of vectorization to enhance performance.
+- Memory management improvements to ensure efficient resource utilization.
 
-__Reminder: This is an individual assessment.__
+## Conway's Game of Life
+Conway's Game of Life is a famous cellular automaton devised by mathematician John Horton Conway. It's a zero-player game, meaning its evolution is determined by its initial state, requiring no further input. It consists of a grid of cells that live, die, or multiply based on a set of rules.
 
-Although students are encouraged to discuss the problem background and coding techniques with their peers, you should not allow other students to examine your code, nor attempt to view the code of others. In cases of doubt, students may be examined on their submission via oral assessment.
+### Key Enhancements
+- Modularization of code for better maintainability and readability.
+- Optimized handling of edge cases and boundary conditions.
+- Extensive testing and validation to ensure reliable performance.
 
-If you use any non-Imperial websites during the course of this assessment, please list them in `References.md`
+## Project Structure
+This repository is structured as follows:
+- `README.md`: The project's README file with introduction and instructions.
+- `automata.py`: The main script for Lorenz 96 and Conway's Game of Life implementations.
+- `discussion.ipynb`: Jupyter Notebook discussing the implementation details and improvements.
+- `requirements.txt`: Required libraries and dependencies for the project.
+- `tests/`: Directory containing test cases and scripts.
+- - `[test files]`: Individual test files for different parts of the project.
 
-#### Suggested Workflow
+## Usage
+Instructions on how to run and use the implementations are provided in the discussion notebook.
 
-You are recommended to work using a code editor such as VS Code, rather than working in Jupyter notebooks and copying material back and forth. Your work should be uploaded to GitHub before the submission deadline. See lecture 1 for details on how to `push` your work to GitHub.
+## Contributions
+As this is an educational project aimed at continuous learning and improvement, contributions, suggestions, and discussions are welcome.
 
-For the purpose of this assessment, you can use the `ese-msc` environment with which you have been provided. There is no need to create a new environment (although you may of course do so if you wish) or update the `requirements.txt` file included with the repository.
+## License
+This project is open-sourced under the MIT License. See the LICENSE file for more details.
 
-#### Submission deadline
-
-The final version of your module should be submitted via your GitHub Classrooms repository by 16:00 BST on Friday 13th October 2023.
-
-To avoid technical issues, please try to upload versions of your work regularly as you progress.
+Thank you for visiting my project!
