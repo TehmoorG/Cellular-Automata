@@ -1,133 +1,613 @@
-"""
-Test automata module functions
-Note: To ensure automata can be imported successfully, we recommend setting your PYTHONPATH prior to running this test file. This can be done in a terminal via, e.g.
-export PYTHONPATH=/path_to/mpm-assessment-1
-or similar.
-"""
-import os
 import numpy as np
-import automata
 import pytest
+import os
+import sys
 
-BASE_PATH = os.path.dirname(__file__)
+
+base_dir = os.environ.get("BASEDIR", os.path.dirname(__file__) + os.sep)
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-class TestLorenz96(object):
-    """Class for testing the lorenz96 automata"""
+class TestGeneral(object):
+    # Test 1: Some general tests
+    def test_flake8_an(self):
+        from flake8.api import legacy as flake8
+        import automata
 
-    def test_lorenz96_basic(self):
-        """Test Lorenz 96 implementation using pre-defined data"""
-        initial64 = np.load(os.sep.join((BASE_PATH, "lorenz96_64_init.npy")))
-        onestep64 = np.load(os.sep.join((BASE_PATH, "lorenz96_64_onestep.npy")))
-        assert np.isclose(automata.lorenz96(initial64, 1), onestep64).all()
-        thirtystep64 = np.load(os.sep.join((BASE_PATH, "lorenz96_64_thirtystep.npy")))
-        assert np.isclose(automata.lorenz96(initial64, 30), thirtystep64).all()
+        style_guide = flake8.get_style_guide()
+        result = style_guide.input_file(
+            os.sep.join((os.environ.get("PYTHONPATH", "./"), "automata.py"))
+        )
+        assert result.total_errors == 0
+        assert hasattr(automata, "lorenz96")
+        assert hasattr(automata, "life")
 
-    def test_steady_state(self):
-        """Test Lorenz96 when all elements are 8. This should not change"""
-        initial_state = np.full((64,), 8.0)  # An array of 64 eights
-        result = automata.lorenz96(initial_state, 1)
-        # Set a higher tolerance due to possible floating point errors
-        assert np.isclose(result, 8.0, atol=1e-6).all(), "Failed steady state test"
 
-    def test_forcing_increase(self):
-        initial_state = np.full((64,), 7.0)
-        result = automata.lorenz96(
-            initial_state, 100
-        )  # Assuming 100 steps will show the change
-        assert (result > 7.0).all(), "Failed forcing increase test"
+class TestLorenz(object):
+    # Test lorenz96
+    # Test 2
+    def test_lorenz96_stabiity(self):
+        import automata
 
-    def test_lorenz96_one_different(self):
-        initial_state = np.full(64, 8.0)  # An array of 64 elements, all equal to 8
-        i = 3  # Select an arbitrary index for changing the value
-        initial_state[i] = 9.0  # Change the i-th value to 9
+        X = np.full(16, 8.0)
+        X = automata.lorenz96(X, 16)
+        Z = np.full(16, 8.0)
+        assert (X == Z).all()
 
-        # Apply your Lorenz 96 function
-        result = automata.lorenz96(initial_state, nsteps=1, constants=(1 / 101, 100, 8))
+    # Test 3
+    def test_lorenz_ints(self):
+        import automata
 
-        # Expected values
-        expected_i_minus_1 = 800 / 101
-        expected_i = 908 / 101
-        expected_i_plus_1 = 816 / 101
+        X = np.array([3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0])
+        Y = np.array([2.95, 3.8, 4.71, 5.61, 6.83, 8.12, 7.37, 6.34, 5.3, 4.2, 3.1])
+        X = automata.lorenz96(X, 2)
+        assert np.allclose(X, Y, atol=0.1, rtol=0.1)
 
-        # Assert the expected values
-        assert np.isclose(result[i - 1], expected_i_minus_1, atol=1e-6)
-        assert np.isclose(result[i], expected_i, atol=1e-6)
-        assert np.isclose(result[i + 2], expected_i_plus_1, atol=1e-6)
 
-        # Assert that all other values remain approximately 8.0
-        assert np.isclose(
-            result[
-                (result != expected_i_minus_1)
-                & (result != expected_i)
-                & (result != expected_i_plus_1)
+class TestLife(object):
+    # Tests on 2D Game of Life
+    # Test 4
+    def test_life_runs_on_array(self):
+        import automata
+
+        X = np.zeros((3, 3), bool)
+        X[1, :] = True
+        X = automata.life(X, 1)
+
+        Z = np.array(((False, True, False), (False, True, False), (False, True, False)))
+
+        assert (np.array(X) == np.array(Z)).all()
+
+    # Test 5
+    def test_life_runs_on_arraylikes(self):
+        import automata
+
+        X = ((False, False, False), (True, True, True), (False, False, False))
+
+        X = automata.life(X, 1)
+
+        Z = np.array(((False, True, False), (False, True, False), (False, True, False)))
+
+        assert (np.array(X) == np.array(Z)).all()
+
+    # Test 6
+    def test_life_glider(self):
+        import automata
+
+        X = np.array(
+            (
+                (0, 0, 0, 0, 0),
+                (0, 1, 1, 1, 0),
+                (0, 0, 0, 1, 0),
+                (0, 0, 1, 0, 0),
+                (0, 0, 0, 0, 0),
+            ),
+            bool,
+        )
+
+        X = automata.life(X, 4)
+
+        Z = np.array(
+            (
+                (0, 0, 1, 1, 1),
+                (0, 0, 0, 0, 1),
+                (0, 0, 0, 1, 0),
+                (0, 0, 0, 0, 0),
+                (0, 0, 0, 0, 0),
+            ),
+            bool,
+        )
+
+        assert (np.array(X) == np.array(Z)).all()
+
+    # Test 7
+    @pytest.mark.timeout(4)
+    def test_life_on_data(self):
+        import automata
+
+        X = np.load(base_dir + "life_small_init.npy")
+        Y = np.load(base_dir + "life_small_final.npy")
+
+        assert np.array(automata.life(X, 10) == Y).all()
+
+    # Test 8
+    @pytest.mark.timeout(4)
+    def test_life_large(self):
+        import automata
+
+        X = np.load(base_dir + "life_random_large_init.npy")
+        Y = np.load(base_dir + "life_random_large_final.npy")
+        X = automata.life(X, 32)
+        assert (X == Y).all()
+
+
+class TestLifePeriodic(object):
+    # Tests for Periodic Game of Life
+    # Test 9
+    def test_life_runs_on_array_periodic(self):
+        import automata
+
+        X = np.zeros((4, 4), bool)
+        X[1, :2] = True
+        X[1, 3] = True
+        X = automata.life(X, 1, periodic=True)
+
+        Z = np.array(
+            (
+                (True, False, False, False),
+                (True, False, False, False),
+                (True, False, False, False),
+                (False, False, False, False),
+            )
+        )
+
+        assert (np.array(X) == np.array(Z)).all()
+
+    # Test 10
+    def test_life_glider_periodic(self):
+        import automata
+
+        X = np.array(
+            (
+                (0, 0, 0, 0, 0),
+                (0, 1, 1, 1, 0),
+                (0, 0, 0, 1, 0),
+                (0, 0, 1, 0, 0),
+                (0, 0, 0, 0, 0),
+            ),
+            bool,
+        )
+
+        X0 = automata.life(X.copy(), 20, periodic=True)
+
+        Z = np.array(
+            (
+                (0, 0, 0, 0, 0),
+                (0, 1, 1, 1, 0),
+                (0, 0, 0, 1, 0),
+                (0, 0, 1, 0, 0),
+                (0, 0, 0, 0, 0),
+            ),
+            bool,
+        )
+
+        assert (np.array(X0) == np.array(Z)).all()
+
+        X0 = automata.life(X.T.copy(), 20, periodic=True)
+        assert (np.array(X0) == np.array(Z.T)).all()
+
+        X0 = automata.life(X[::-1, :].copy(), 20, periodic=True)
+        assert (np.array(X0) == np.array(Z[::-1, :])).all()
+
+        X0 = automata.life(X[:, ::-1].copy(), 20, periodic=True)
+        assert (np.array(X0) == np.array(Z[:, ::-1])).all()
+
+    # Test 11
+    @pytest.mark.timeout(2)
+    def test_life_periodic_on_data(self):
+        import automata
+
+        X = np.load(base_dir + "life_small_init.npy")
+        Y = np.load(base_dir + "life_periodic_small_final.npy")
+
+        assert (np.array(automata.life(X, 10, periodic=True)) == Y).all()
+
+    # Test 12
+    @pytest.mark.timeout(4)
+    def test_life_periodic_large(self):
+        import automata
+
+        X = np.load(base_dir + "lifep_random_large_init.npy")
+        Y = np.load(base_dir + "lifep_random_large_final.npy")
+        X = automata.life(X, 60, periodic=True)
+        assert (X == Y).all()
+
+
+class Test2ColourLife(object):
+    # Tests on 2 Colour Game of Life
+    # Test 13
+    @pytest.mark.timeout(2)
+    def test_life2colour_splitcol(self):
+        import automata
+
+        X = np.load(base_dir + "life2c_1_init.npy")
+        Y = np.load(base_dir + "life2c_1_final.npy")
+        X = automata.life(X, 17, rules="2colour", periodic=True)
+        assert (X == Y).all()
+
+    # Test 14
+    @pytest.mark.timeout(2)
+    def test_life2colour_rand_small(self):
+        import automata
+
+        X = np.load(base_dir + "life2c_2_init.npy")
+        Y = np.load(base_dir + "life2c_2_final.npy")
+        X = automata.life(X, 23, rules="2colour", periodic=True)
+        assert (X == Y).all()
+
+    # Test 15
+    @pytest.mark.timeout(4)
+    def test_life2colour_rand_large(self):
+        import automata
+
+        X = np.load(base_dir + "life2c_random_large_init.npy")
+        Y = np.load(base_dir + "life2c_random_large_final.npy")
+        X = automata.life(X, 24, rules="2colour", periodic=True)
+        assert (X == Y).all()
+
+    # Test 16
+    @pytest.mark.timeout(4)
+    def test_life2colour_rand_large_nonperiodic(self):
+        import automata
+
+        X = np.load(base_dir + "life2c_random_large_init_nonperiodic.npy")
+        Y = np.load(base_dir + "life2c_random_large_final_nonperiodic.npy")
+        X = automata.life(X, 36, rules="2colour", periodic=False)
+        assert (X == Y).all()
+
+
+class Test3DLife(object):
+    # 3D game of life baby
+    # Test 17
+    def test_varied_initial(self):
+        import automata
+
+        X = np.array(
+            [
+                [
+                    [1, 0, 1, 1, 0],
+                    [1, 0, 1, 0, 1],
+                    [0, 1, 1, 0, 1],
+                    [1, 1, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                ],
+                [
+                    [0, 0, 0, 1, 0],
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 0, 1],
+                    [0, 0, 1, 1, 0],
+                    [1, 1, 0, 0, 1],
+                ],
+                [
+                    [1, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 1],
+                    [1, 1, 1, 0, 0],
+                    [1, 1, 1, 1, 1],
+                    [0, 0, 0, 0, 0],
+                ],
+                [
+                    [1, 1, 1, 0, 0],
+                    [1, 0, 1, 1, 0],
+                    [0, 0, 1, 0, 0],
+                    [1, 0, 1, 1, 0],
+                    [1, 0, 1, 1, 1],
+                ],
+                [
+                    [0, 0, 0, 1, 0],
+                    [0, 0, 1, 0, 0],
+                    [1, 0, 0, 1, 1],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 1, 1],
+                ],
             ],
-            8.0,
-            atol=1e-6,
-        ).all()
+            dtype=int,
+        )
+        Y = np.array(
+            [
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 1, 0, 0, 0],
+                    [0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                ],
+                [
+                    [1, 0, 0, 1, 0],
+                    [0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 1, 0, 0, 0],
+                    [0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                ],
+            ],
+            dtype=int,
+        )
 
-    def test_different_constants(self):
-        # testing with different α, β, γ values
-        initial_state = [8.0, 8.0, 8.0, 8.0, 8.0]
-        constants = (1 / 70, 69, 2)  # new constants
-        # Hand Calculated
-        expected = [
-            7.914285714285714,
-            7.914285714285714,
-            7.914285714285714,
-            7.914285714285714,
-            7.914285714285714,
-        ]
-        result = automata.lorenz96(initial_state, 1, constants=constants)
-        assert np.isclose(result, expected).all()
+        assert (automata.life(X, 2, rules="3d") == Y).all()
 
+    # Test 18
+    def test_varied_initial_periodic(self):
+        import automata
 
-class TestLife:
-    @pytest.mark.parametrize(
-        "initial_state, n_steps, expected_state, rules, periodic",
-        [
-            # 2D Basic Rules
-            (
-                np.array([[0, 1, 0], [0, 1, 1], [1, 1, 1]]),
-                1,
-                np.array([[0, 1, 1], [0, 0, 0], [1, 0, 1]]),
-                "basic",
-                False,
-            ),
-            # 2D Two-Colour Rules
-            (
-                np.array([[0, 0, 0, 0], [0, 1, 0, 0], [0, 1, 2, 0], [0, 1, 0, 0]]),
-                1,
-                np.array([[0, 0, 0, 0], [0, 1, 1, 0], [1, 1, 2, 0], [0, 1, 1, 0]]),
-                "2colour",
-                False,
-            ),
-            # Periodic Conditions
-            (
-                np.array([[0, 1, 0], [0, 0, 0], [0, 0, 0]]),
-                1,
-                np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]]),
-                "basic",
-                True,
-            ),
-        ],
-    )
-    def test_life(self, initial_state, n_steps, expected_state, rules, periodic):
-        result = automata.life(initial_state, n_steps, rules, periodic)
-        np.testing.assert_array_equal(result, expected_state)
+        X = np.array(
+            [
+                [
+                    [0, 1, 1, 0, 1, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 1, 0, 1, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 1, 1, 0, 1, 0],
+                    [1, 0, 0, 0, 0, 1, 0, 1, 1, 1],
+                    [1, 1, 0, 1, 0, 1, 0, 1, 0, 0],
+                    [1, 0, 0, 0, 1, 1, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 1, 0, 1, 0, 1, 0],
+                    [0, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+                    [0, 1, 0, 0, 0, 1, 1, 1, 0, 1],
+                    [0, 1, 0, 0, 0, 0, 1, 1, 1, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+                    [1, 0, 0, 1, 1, 0, 1, 0, 0, 1],
+                    [0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+                    [1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
+                ],
+                [
+                    [0, 1, 0, 0, 0, 1, 0, 0, 1, 0],
+                    [1, 0, 0, 0, 0, 1, 1, 0, 0, 1],
+                    [0, 1, 0, 0, 0, 1, 0, 1, 1, 0],
+                    [0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
+                    [0, 0, 1, 0, 0, 0, 1, 0, 0, 1],
+                    [0, 0, 0, 0, 1, 0, 1, 0, 1, 0],
+                    [1, 1, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
+                    [1, 1, 0, 0, 0, 0, 1, 1, 0, 1],
+                ],
+                [
+                    [0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                [
+                    [1, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 0, 1, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 0, 1, 0, 1, 1, 0, 0],
+                    [0, 1, 0, 0, 1, 1, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 1, 1, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 1, 0, 0, 1, 1, 1],
+                    [0, 0, 0, 1, 1, 0, 1, 0, 0, 0],
+                    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                [
+                    [1, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 1, 1],
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [1, 0, 1, 1, 1, 0, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                    [1, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [1, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+                ],
+                [
+                    [1, 1, 0, 0, 0, 0, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 1, 0, 0, 0, 0, 1, 1],
+                    [0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+                    [0, 1, 0, 0, 0, 1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+                    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 1, 0, 0, 0, 1, 1, 1],
+                    [1, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+                    [1, 1, 0, 1, 0, 0, 1, 1, 1, 0],
+                    [0, 1, 0, 0, 0, 0, 1, 1, 1, 0],
+                    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [1, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 1, 1, 0, 0, 0],
+                    [1, 0, 0, 0, 1, 1, 1, 1, 0, 0],
+                    [1, 1, 1, 0, 1, 0, 0, 1, 0, 0],
+                    [0, 0, 1, 0, 0, 0, 1, 1, 0, 0],
+                    [0, 1, 0, 1, 1, 1, 0, 0, 0, 0],
+                    [0, 1, 1, 0, 1, 0, 0, 0, 0, 0],
+                    [0, 1, 0, 1, 0, 1, 1, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 1, 1, 0, 0, 0],
+                    [0, 0, 0, 1, 0, 1, 1, 0, 0, 0],
+                ],
+            ],
+            dtype=int,
+        )
 
-    def test_3d_conditions(self):
-        # This tests the scenario for a 3D grid.
-        initial_state = np.zeros((3, 3, 3))
-        initial_state[1, 1, 1] = 1
-        # Based on the 3D rules, the central cell should stay alive
-        # with 0 or 1 neighbors, or die with more neighbors.
-        expected_state = np.zeros((3, 3, 3))
-        result = automata.life(initial_state, 1, rules="3d", periodic=False)
-        np.testing.assert_array_equal(result, expected_state)
+        Y = np.array(
+            [
+                [
+                    [0, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 1, 0, 1, 1, 0, 1],
+                ],
+                [
+                    [1, 0, 1, 0, 0, 1, 1, 1, 0, 0],
+                    [0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+                    [1, 0, 1, 0, 1, 1, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 0, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 1, 0, 1, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 1, 1, 0, 0, 0, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+                    [0, 1, 0, 1, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 1, 1, 0, 1, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                    [0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 0, 0, 1, 1, 0, 1],
+                    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 1, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 0, 1, 0, 1, 0],
+                    [0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                    [0, 1, 0, 1, 1, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+                ],
+                [
+                    [1, 0, 0, 1, 0, 0, 1, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 0, 1, 1, 1, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 1, 0, 0],
+                    [1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 0, 1, 0, 1, 0, 1, 1, 0],
+                    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 0, 1, 1, 0, 0, 0],
+                    [0, 0, 1, 0, 1, 0, 0, 1, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 1, 1, 0, 0, 0, 0, 0, 1, 0],
+                    [1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 1, 0, 1, 0, 1, 0, 0, 0],
+                    [0, 0, 1, 1, 1, 0, 0, 1, 1, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 1, 1, 0, 1, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 0, 1, 0, 1, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0],
+                    [1, 0, 0, 0, 1, 1, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 1, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 1, 1, 0, 0, 1, 1, 0],
+                    [0, 0, 0, 0, 1, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 1, 0, 1],
+                    [1, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+                ],
+            ],
+            dtype=int,
+        )
 
-    def test_non_square_grid(self):
-        initial_state = np.array([[0, 0, 0, 0], [0, 1, 1, 1], [0, 0, 0, 0]])
-        expected_state = np.array([[0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 1, 0]])
-        result = automata.life(initial_state, 1, rules="basic", periodic=False)
-        np.testing.assert_array_equal(result, expected_state)
+        assert (automata.life(X, 100, rules="3d", periodic=True) == Y).all()
+
+    # Test 19
+    @pytest.mark.timeout(4)
+    def test_life3d_rand_large(self):
+        import automata
+
+        X = np.load(base_dir + "life3d_random_large_init.npy")
+        Y = np.load(base_dir + "life3d_random_large_final.npy")
+        assert (automata.life(X, 24, rules="3d") == Y).all()
+
+    # Test 20
+    @pytest.mark.timeout(4)
+    def test_life3d_rand_large_periodic(self):
+        import automata
+
+        X = np.load(base_dir + "life3d_random_large_init_periodic.npy")
+        Y = np.load(base_dir + "life3d_random_large_final_periodic.npy")
+        assert (automata.life(X, 40, rules="3d", periodic=True) == Y).all()
