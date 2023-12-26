@@ -1,6 +1,12 @@
-.ipynb_checkpoints/
-.pytest_cache/
-.__pycache__/
-# all pycache files
+# Byte-compiled / optimized / DLL files
+__pycache__/
 *.pyc
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Pytest cache
+.pytest_cache/
+
+# Ignore assessment file
 assessment.pdf
